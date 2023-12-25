@@ -2,7 +2,7 @@ import os
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from models import Favorite_Planets, People, Planets, User, Favorite_Planets, db
+from models import Favorite_Planets, People, Planets, User, Favorite_People, db
 
 
 app = Flask(__name__)
@@ -165,11 +165,112 @@ def post_favorit_planet_id(planet_id):
  # [POST] /favorite/people/<int:people_id>
 
 
+@app.route('/favorite/people/<int:people_id>', methods=['POST'])
+def post_favorit_people_id(people_id):
+    try:
+        data = request.json
+        # Obtener el ID del usuario de los datos de la solicitud
+        id_user = data.get('id_user')
+        # Obtener la fecha de creación de los datos de la solicitud
+        created = data.get('created')
+
+        # Crea un nuevo registro en la tabla Favorite_People
+        new_favorite = Favorite_People(
+            id_user=id_user,
+            id_people=people_id,  # Utiliza el ID de people de la URL
+            created=created
+        )
+        db.session.add(new_favorite)
+        db.session.commit()
+
+        response_body = {
+            "msg": "Data added successfully",
+            "id_user": id_user,
+            "id_people": people_id,
+            "created": created
+        }
+
+        return response_body, 200
+    except Exception as e:
+        db.session.rollback()  # Rollback en caso de error
+        return {"error": str(e)}, 500
+    finally:
+        db.session.close()
+
+
+# [DELETE] /favorite/planet/<int:planet_id>
+@app.route('/favorite/planet/<int:planet_id>', methods=['DELETE'])
+def delete_favorit_planet_id(planet_id):
+    try:
+        data = request.json
+        # Obtener el ID del usuario de los datos de la solicitud
+        id_user = data.get('id_user')
+
+        # Buscar el registro correspondiente en la tabla Favorite_Planets
+        favorite_to_delete = Favorite_Planets.query.filter_by(
+            id_user=id_user, id_planet=planet_id).first()
+
+        if favorite_to_delete:
+            # Eliminar el registro de la tabla Favorite_Planets
+            db.session.delete(favorite_to_delete)
+            db.session.commit()
+
+            response_body = {
+                "msg": "Data deleted successfully",
+                "id_user": id_user,
+                "id_planet": planet_id
+            }
+
+            return response_body, 200
+        else:
+            return {"error": "Favorite not found"}, 404
+
+    except Exception as e:
+        db.session.rollback()  # Rollback en caso de error
+        return {"error": str(e)}, 500
+    finally:
+        db.session.close()
+
+
+# [DELETE] /favorite/people/<int:people_id>
+@app.route('/favorite/people/<int:people_id>', methods=['DELETE'])
+def delete_favorit_people_id(people_id):
+    try:
+        data = request.json
+        # Obtener el ID del usuario de los datos de la solicitud
+        id_user = data.get('id_user')
+
+        # Buscar el registro correspondiente en la tabla Favorite_Planets
+        favorite_to_delete = Favorite_People.query.filter_by(
+            id_user=id_user, id_people=people_id).first()
+
+        if favorite_to_delete:
+            # Eliminar el registro de la tabla Favorite_Planets
+            db.session.delete(favorite_to_delete)
+            db.session.commit()
+
+            response_body = {
+                "msg": "Data deleted successfully",
+                "id_user": id_user,
+                "id_people": people_id
+            }
+
+            return response_body, 200
+        else:
+            return {"error": "Favorite not found"}, 404
+
+    except Exception as e:
+        db.session.rollback()  # Rollback en caso de error
+        return {"error": str(e)}, 500
+    finally:
+        db.session.close()
+
+
 @app.route('/consulta/<int:id>', methods=['GET'])
 def consulta(id):
     user = User.query.get(id)
     if user:
-        # Aquí puedes devolver los datos del usuario en el formato que desees, por ejemplo, como JSON
+        # devolver los datos del usuario en algun formato, por ejemplo, como JSON
         return {
             'id': user.id,
             'email': user.email,
